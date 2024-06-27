@@ -73,12 +73,32 @@ const validateStudentData = (data) => {
     
     try {
       const db = await mysql.createConnection(dbConfig);
-      const [result] = await db.query(sql, [first_name, last_name, gender, address, phone_no, email, photo, vio_details, thana]);
+      const [result] = await db.query(sql, [first_name, last_name, gender, address, phone_no, email, photo, bio_details, thana]);
       res.status(201).json({ message: 'Student added', id: result.insertId });
       db.end();
     } catch (err) {
       console.error('Database error:', err);
       res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+  app.delete('/students/:id', async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const db = await mysql.createConnection(dbConfig);
+      const [result] = await db.query('DELETE FROM students WHERE id = ?', [id]);
+  
+      if (result.affectedRows === 0) {
+        res.status(404).json({ message: 'Student not found' });
+      } else {
+        res.status(200).json({ message: 'Student deleted' });
+      }
+  
+      db.end();
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      res.status(500).json({ error: 'Server error' });
     }
   });
 
