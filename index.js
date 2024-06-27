@@ -62,6 +62,26 @@ const validateStudentData = (data) => {
     }
   });
 
+  app.get('/students/:id', async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const db = await mysql.createConnection(dbConfig);
+      const [rows] = await db.query('SELECT * FROM students WHERE id = ?', [id]);
+  
+      if (rows.length === 0) {
+        res.status(404).json({ message: 'Student not found' });
+      } else {
+        res.json(rows[0]);
+      }
+  
+      db.end();
+    } catch (err) {
+      console.error('Error retrieving student:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   app.post('/students', async (req, res) => {
     const errors = validateStudentData(req.body);
     if (Object.keys(errors).length > 0) {
