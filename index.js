@@ -1,32 +1,21 @@
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql');
+const mysql = require('mysql2/promise');
 const app = express();
 require('dotenv').config()
 
 const port = process.env.PORT||5000;
 
-app.use(cors({
-    origin:[
-        'http://localhost:5173'
-    ]
-}));
+app.use(cors("*"));
 
 app.use(express.json());
 
-const db = mysql.createConnection({
-    host: process.env.HOST,
-    user: process.env.DB_USER,
-    password: process.env.PASSWORD,
-    database: process.env.DB_NAME
-});
-
-db.connect((err)=>{
-    if(err){
-        throw err;
-    }
-    console.log("MySQL connected.........")
-})
+const dbConfig = {
+  host: process.env.HOST,
+  user: process.env.DB_USER,
+  password: process.env.PASSWORD,
+  database: process.env.DB_NAME
+};
 
 // Validate input data
 const validateStudentData = (data) => {
@@ -60,6 +49,38 @@ const validateStudentData = (data) => {
     }
     return errors;
   };
+
+  app.get('/students', async (req, res) => {
+    try {
+      const db = await mysql.createConnection(dbConfig);
+      const [rows] = await db.query('SELECT * FROM students');
+      res.json(rows);
+      db.end();
+    } catch (err) {
+      console.error('Error retrieving students:', err);
+      res.status(500).send('Server error');
+    }
+  });
+
+  app.post('/students', async (req, res) => {
+    const errors = validateStudentData(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+  
+    const { first_name, last_name, gender, address, phone_no, email, photo, bio_details, thana } = req.body;
+    const sql = 'INSERT INTO students (first_name, last_name, gender, address, phone_no, email, photo, vio_details, thana) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    
+    try {
+      const db = await mysql.createConnection(dbConfig);
+      const [result] = await db.query(sql, [first_name, last_name, gender, address, phone_no, email, photo, vio_details, thana]);
+      res.status(201).json({ message: 'Student added', id: result.insertId });
+      db.end();
+    } catch (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
 
 app.get('/', (req,res) =>{
     res.send("Student Portal Website running ")
