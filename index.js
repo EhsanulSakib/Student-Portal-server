@@ -38,8 +38,8 @@ const validateStudentData = (data) => {
     if (!data.email || !/\S+@\S+\.\S+/.test(data.email)) {
       errors.email = 'Valid email is required';
     }
-    if (data.photo && data.photo.length > 50) {
-      errors.photo = 'Photo must be 50 characters or less';
+    if (data.photo && data.photo.length > 255) {
+      errors.photo = 'Photo must be 255 characters or less';
     }
     if (data.vio_details && data.vio_details.length > 250) {
       errors.vio_details = 'Violations details must be 250 characters or less';
@@ -95,6 +95,34 @@ const validateStudentData = (data) => {
       const db = await mysql.createConnection(dbConfig);
       const [result] = await db.query(sql, [first_name, last_name, gender, address, phone_no, email, photo, bio_details, thana]);
       res.status(201).json({ message: 'Student added', id: result.insertId });
+      db.end();
+    } catch (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+  app.put('/students/:id', async (req, res) => {
+    const { id } = req.params;
+    const errors = validateStudentData(req.body);
+  
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+  
+    const { first_name, last_name, gender, address, phone_no, email, photo, bio_details, thana } = req.body;
+    const sql = 'UPDATE students SET first_name = ?, last_name = ?, gender = ?, address = ?, phone_no = ?, email = ?, photo = ?, vio_details = ?, thana = ? WHERE id = ?';
+    
+    try {
+      const db = await mysql.createConnection(dbConfig);
+      const [result] = await db.query(sql, [first_name, last_name, gender, address, phone_no, email, photo, bio_details, thana, id]);
+  
+      if (result.affectedRows === 0) {
+        res.status(404).json({ message: 'Student not found' });
+      } else {
+        res.status(200).json({ message: 'Student updated' });
+      }
+  
       db.end();
     } catch (err) {
       console.error('Database error:', err);
